@@ -32,3 +32,19 @@ git commit -m "msg"
 ```
 
 ~~removed text~~
+
+to do link in readme file we will use [google] (https://www.google.com/)
+
+#### unorderd list
+
+-item
+
+-item
+
+-item
+
+#### orderd list
+
+1. item
+2. item
+3. item
