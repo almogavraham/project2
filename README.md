@@ -1,50 +1,74 @@
-# how to use
+# Advanced Personal Assistant
 
-open index.html
+A conversational AI assistant powered by Claude claude-opus-4-7 with persistent memory, tool use, streaming responses, and prompt caching.
 
-.env structure
+## Features
 
-TOKEN = number
+| Feature | Description |
+|---|---|
+| **Persistent Memory** | Remembers facts, notes, and preferences across sessions (`~/.personal_assistant_memory.json`) |
+| **Math** | Safe evaluation of arithmetic, trig, logarithms, and other math functions |
+| **Web Search** | Real-time web search via Claude's built-in search tool |
+| **Notes** | Create and retrieve named notes stored locally |
+| **Preferences** | Save and recall personal settings (name, language, etc.) |
+| **Streaming** | Responses stream token-by-token for low latency |
+| **Prompt Caching** | System prompt is cached, reducing token costs on repeated calls |
+| **Adaptive Thinking** | Claude uses extended reasoning on complex queries automatically |
 
-# the biggest title
+## Setup
 
-###### the smallest title
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-**bold text**
+# Set your API key
+export ANTHROPIC_API_KEY=your_key_here
 
-_bold text_
-
-_italic text_
-_italic text_
-
-**bold text and inside the bold text we have _italic_**
-
-**all bold and italic**
-
-> some code
-
-to commit we will use
-
+# Run the assistant
+python assistant.py
 ```
 
-git add .
-git commit -m "msg"
+## Usage
+
+```
+You: What's 15% tip on a $47.50 bill?
+You: Remember that my name is Alex and I prefer metric units
+You: Search for the latest news on AI research
+You: Write a note called "shopping" with eggs, milk, bread
+You: Read my shopping note
+You: What time is it?
+You: quit
 ```
 
-~~removed text~~
+### Commands
 
-to do link in readme file we will use [google] (https://www.google.com/)
+| Command | Action |
+|---|---|
+| `clear` | Clears conversation history (memory is preserved) |
+| `quit` / `exit` / `bye` | Exits the assistant |
 
-#### unorderd list
+## Architecture
 
--item
+```
+assistant.py
+├── Memory layer      — JSON file at ~/.personal_assistant_memory.json
+├── Tool registry     — 9 client-side tools + web_search (server-side)
+├── System prompt     — Cached with cache_control: ephemeral
+├── Agentic loop      — Handles tool_use, pause_turn, end_turn
+└── Conversation history — Trimmed to last 15 turns to manage tokens
+```
 
--item
+### Tools
 
--item
-
-#### orderd list
-
-1. item
-2. item
-3. item
+| Tool | Type | Description |
+|---|---|---|
+| `get_datetime` | client | Current date and time |
+| `calculate` | client | Math expression evaluator |
+| `remember_fact` | client | Store a fact to persistent memory |
+| `recall_facts` | client | Retrieve stored facts |
+| `write_note` | client | Create/update a named note |
+| `read_note` | client | Read a note by title |
+| `list_notes` | client | List all notes |
+| `set_preference` | client | Save a user preference |
+| `get_preferences` | client | Retrieve all preferences |
+| `web_search` | server | Live web search (Anthropic-hosted) |
