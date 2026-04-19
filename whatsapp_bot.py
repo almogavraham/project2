@@ -12,7 +12,7 @@ import datetime
 from pathlib import Path
 
 import anthropic
-from flask import Flask, request
+from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
 
 # ── Configuration ──────────────────────────────────────────────────────────────
@@ -330,8 +330,59 @@ def webhook():
 
 
 @app.route("/", methods=["GET"])
-def health():
-    return "WhatsApp Assistant is running!", 200
+def dashboard():
+    return render_template("dashboard.html")
+
+
+@app.route("/api/memory", methods=["GET"])
+def api_memory():
+    return jsonify(load_memory())
+
+
+@app.route("/api/notes", methods=["POST"])
+def api_add_note():
+    data = request.get_json()
+    write_note(data["title"], data["content"])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/notes/<path:title>", methods=["PUT"])
+def api_update_note(title):
+    data = request.get_json()
+    memory = load_memory()
+    if title in memory["notes"]:
+        del memory["notes"][title]
+    memory["notes"][data["title"]] = {
+        "content": data["content"],
+        "updated_at": datetime.datetime.now().isoformat(),
+    }
+    save_memory(memory)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/notes/<path:title>", methods=["DELETE"])
+def api_delete_note(title):
+    memory = load_memory()
+    memory["notes"].pop(title, None)
+    save_memory(memory)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/facts/<int:index>", methods=["DELETE"])
+def api_delete_fact(index):
+    memory = load_memory()
+    if 0 <= index < len(memory["facts"]):
+        memory["facts"].pop(index)
+        save_memory(memory)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/preferences/<path:key>", methods=["DELETE"])
+def api_delete_pref(key):
+    memory = load_memory()
+    memory.get("preferences", {}).pop(key, None)
+    save_memory(memory)
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

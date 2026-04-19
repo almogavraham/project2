@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>העוזר האישי שלי</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { border-radius: 16px 16px 0 0 !important; font-weight: 600; }
+    .fact-item, .pref-item { background: #f8f9fa; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .note-card { background: #fffde7; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-right: 4px solid #ffc107; }
+    .note-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 6px; }
+    .note-content { color: #555; white-space: pre-wrap; }
+    .note-date { font-size: 0.78rem; color: #aaa; margin-top: 8px; }
+    .badge-cat { font-size: 0.72rem; }
+    .stat-card { border-radius: 16px; padding: 20px; color: white; text-align: center; }
+    .stat-card h2 { font-size: 2.5rem; font-weight: 700; margin: 0; }
+    .stat-card p { margin: 0; opacity: 0.85; }
+    .btn-delete { color: #dc3545; background: none; border: none; padding: 2px 6px; }
+    .btn-delete:hover { color: #a71d2a; }
+    .empty-state { text-align: center; color: #aaa; padding: 30px; }
+    .modal-content { border-radius: 16px; }
+    textarea.form-control { min-height: 120px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-dark px-4 py-3 mb-4">
+    <span class="navbar-brand fs-4"><i class="bi bi-robot me-2"></i>העוזר האישי שלי</span>
+    <button class="btn btn-light btn-sm" onclick="loadAll()"><i class="bi bi-arrow-clockwise me-1"></i>רענן</button>
+  </nav>
+
+  <div class="container-fluid px-4">
+    <!-- Stats -->
+    <div class="row mb-4" id="stats-row">
+      <div class="col-md-4 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg,#667eea,#764ba2)">
+          <h2 id="stat-facts">-</h2>
+          <p><i class="bi bi-lightbulb me-1"></i>עובדות שמורות</p>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg,#f093fb,#f5576c)">
+          <h2 id="stat-notes">-</h2>
+          <p><i class="bi bi-sticky me-1"></i>פתקים</p>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg,#4facfe,#00f2fe)">
+          <h2 id="stat-prefs">-</h2>
+          <p><i class="bi bi-sliders me-1"></i>העדפות</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Notes -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-sticky-fill me-2"></i>הפתקים שלי</span>
+            <button class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+              <i class="bi bi-plus"></i> פתק חדש
+            </button>
+          </div>
+          <div class="card-body" id="notes-container">
+            <div class="empty-state"><i class="bi bi-sticky fs-1"></i><p>אין פתקים</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Facts + Preferences -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <i class="bi bi-lightbulb-fill me-2"></i>עובדות שהבוט זוכר
+          </div>
+          <div class="card-body" id="facts-container">
+            <div class="empty-state"><i class="bi bi-lightbulb fs-1"></i><p>אין עובדות</p></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <i class="bi bi-sliders me-2"></i>העדפות
+          </div>
+          <div class="card-body" id="prefs-container">
+            <div class="empty-state"><i class="bi bi-sliders fs-1"></i><p>אין העדפות</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Note Modal -->
+  <div class="modal fade" id="addNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">פתק חדש</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">כותרת</label>
+            <input type="text" class="form-control" id="new-note-title" placeholder="שם הפתק" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">תוכן</label>
+            <textarea class="form-control" id="new-note-content" placeholder="תוכן הפתק..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+          <button class="btn btn-warning" onclick="addNote()">שמור פתק</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Note Modal -->
+  <div class="modal fade" id="editNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">עריכת פתק</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-note-title-orig" />
+          <div class="mb-3">
+            <label class="form-label">כותרת</label>
+            <input type="text" class="form-control" id="edit-note-title" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">תוכן</label>
+            <textarea class="form-control" id="edit-note-content"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+          <button class="btn btn-primary" onclick="saveEditNote()">שמור שינויים</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    async function loadAll() {
+      const res = await fetch('/api/memory');
+      const data = await res.json();
+
+      document.getElementById('stat-facts').textContent = data.facts.length;
+      document.getElementById('stat-notes').textContent = Object.keys(data.notes).length;
+      document.getElementById('stat-prefs').textContent = Object.keys(data.preferences).length;
+
+      renderNotes(data.notes);
+      renderFacts(data.facts);
+      renderPrefs(data.preferences);
+    }
+
+    function renderNotes(notes) {
+      const c = document.getElementById('notes-container');
+      const keys = Object.keys(notes);
+      if (!keys.length) {
+        c.innerHTML = '<div class="empty-state"><i class="bi bi-sticky fs-1"></i><p>אין פתקים</p></div>';
+        return;
+      }
+      c.innerHTML = keys.map(title => `
+        <div class="note-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="note-title">${escHtml(title)}</div>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="openEditNote('${escAttr(title)}', \`${escJs(notes[title].content)}\`)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn-delete" onclick="deleteNote('${escAttr(title)}')"><i class="bi bi-trash"></i></button>
+            </div>
+          </div>
+          <div class="note-content">${escHtml(notes[title].content)}</div>
+          <div class="note-date">עודכן: ${notes[title].updated_at.slice(0,10)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderFacts(facts) {
+      const c = document.getElementById('facts-container');
+      if (!facts.length) {
+        c.innerHTML = '<div class="empty-state"><i class="bi bi-lightbulb fs-1"></i><p>אין עובדות</p></div>';
+        return;
+      }
+      c.innerHTML = facts.slice(-30).reverse().map((f, i) => `
+        <div class="fact-item">
+          <div>
+            <span class="badge bg-primary badge-cat me-2">${escHtml(f.category || 'general')}</span>
+            ${escHtml(f.text)}
+          </div>
+          <button class="btn-delete" onclick="deleteFact(${facts.length - 1 - i})"><i class="bi bi-trash"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function renderPrefs(prefs) {
+      const c = document.getElementById('prefs-container');
+      const keys = Object.keys(prefs);
+      if (!keys.length) {
+        c.innerHTML = '<div class="empty-state"><i class="bi bi-sliders fs-1"></i><p>אין העדפות</p></div>';
+        return;
+      }
+      c.innerHTML = keys.map(k => `
+        <div class="pref-item">
+          <div><strong>${escHtml(k)}:</strong> ${escHtml(prefs[k])}</div>
+          <button class="btn-delete" onclick="deletePref('${escAttr(k)}')"><i class="bi bi-trash"></i></button>
+        </div>
+      `).join('');
+    }
+
+    async function deleteNote(title) {
+      if (!confirm(`למחוק את הפתק "${title}"?`)) return;
+      await fetch(`/api/notes/${encodeURIComponent(title)}`, { method: 'DELETE' });
+      loadAll();
+    }
+
+    async function deleteFact(index) {
+      if (!confirm('למחוק עובדה זו?')) return;
+      await fetch(`/api/facts/${index}`, { method: 'DELETE' });
+      loadAll();
+    }
+
+    async function deletePref(key) {
+      if (!confirm(`למחוק את ההעדפה "${key}"?`)) return;
+      await fetch(`/api/preferences/${encodeURIComponent(key)}`, { method: 'DELETE' });
+      loadAll();
+    }
+
+    async function addNote() {
+      const title = document.getElementById('new-note-title').value.trim();
+      const content = document.getElementById('new-note-content').value.trim();
+      if (!title || !content) { alert('נא למלא כותרת ותוכן'); return; }
+      await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+      document.getElementById('new-note-title').value = '';
+      document.getElementById('new-note-content').value = '';
+      loadAll();
+    }
+
+    function openEditNote(title, content) {
+      document.getElementById('edit-note-title-orig').value = title;
+      document.getElementById('edit-note-title').value = title;
+      document.getElementById('edit-note-content').value = content;
+      new bootstrap.Modal(document.getElementById('editNoteModal')).show();
+    }
+
+    async function saveEditNote() {
+      const origTitle = document.getElementById('edit-note-title-orig').value;
+      const title = document.getElementById('edit-note-title').value.trim();
+      const content = document.getElementById('edit-note-content').value.trim();
+      if (!title || !content) { alert('נא למלא כותרת ותוכן'); return; }
+      await fetch(`/api/notes/${encodeURIComponent(origTitle)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      bootstrap.Modal.getInstance(document.getElementById('editNoteModal')).hide();
+      loadAll();
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
+    function escJs(s) { return String(s).replace(/`/g,'\\`').replace(/\$/g,'\\$'); }
+
+    loadAll();
+  </script>
+</body>
+</html>
