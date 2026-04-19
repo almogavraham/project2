@@ -11,7 +11,10 @@ import math
 import datetime
 from pathlib import Path
 
+import tempfile
+import requests
 import anthropic
+import openai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
 
@@ -236,6 +239,22 @@ Respond in the same language the user writes in."""
 
 # ── Assistant Logic ────────────────────────────────────────────────────────────
 anthropic_client = anthropic.Anthropic()
+openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+
+def transcribe_voice(media_url: str, twilio_account_sid: str, twilio_auth_token: str) -> str:
+    """Download voice message from Twilio and transcribe with Whisper."""
+    response = requests.get(media_url, auth=(twilio_account_sid, twilio_auth_token))
+    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+        f.write(response.content)
+        tmp_path = f.name
+    with open(tmp_path, "rb") as audio_file:
+        result = openai_client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+        )
+    os.unlink(tmp_path)
+    return result.text
 
 
 def get_assistant_response(messages: list) -> str:
@@ -295,6 +314,23 @@ conversations: dict[str, list] = {}
 def webhook():
     body = request.values.get("Body", "").strip()
     from_number = request.values.get("From", "")
+    num_media = int(request.values.get("NumMedia", 0))
+
+    # Handle voice message
+    if num_media > 0:
+        media_url = request.values.get("MediaUrl0", "")
+        media_type = request.values.get("MediaContentType0", "")
+        if "audio" in media_type:
+            account_sid = os.environ.get("TWILIO_ACCOUNT_SID", "")
+            auth_token = os.environ.get("TWILIO_AUTH_TOKEN", "")
+            try:
+                body = transcribe_voice(media_url, account_sid, auth_token)
+                print(f"[{from_number}] (voice) {body}")
+            except Exception as exc:
+                print(f"Transcription error: {exc}")
+                resp = MessagingResponse()
+                resp.message("מצטער, לא הצלחתי להבין את ההודעה הקולית.")
+                return str(resp)
 
     if not body:
         return "", 204
